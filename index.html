@@ -1,0 +1,711 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oceanus Folk Explorer | CGT 470 Group 5</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+:root {
+  --bg:#0b1220; --panel:#111c2e; --panel2:#17263b;
+  --line:#2b3c53; --text:#edf4ff; --muted:#9aabc2;
+  --blue:#55a6ff; --teal:#42cdbb; --gold:#f1c75b;
+  --purple:#b18cff; --gray:#9aa9b2;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 Arial,sans-serif}
+header{padding:23px clamp(15px,3vw,32px);background:linear-gradient(115deg,#101c30,#17354a);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+h1{font-size:clamp(23px,3vw,31px);margin:0}
+header p{margin:4px 0 0;color:#b5c6da}
+.tag{border:1px solid #46627a;border-radius:30px;padding:6px 11px;font-size:11px}
+main{max-width:1600px;margin:auto;padding:18px;display:grid;gap:15px}
+.panel,.stat,.controls{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.panel-head{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+h2{font-size:17px;margin:0}
+.panel-body{padding:14px 16px}
+.controls{padding:14px;display:grid;grid-template-columns:2fr 1fr 1.4fr 1fr auto;gap:10px;align-items:end}
+label{display:block;color:var(--muted);font-size:11px;font-weight:bold;letter-spacing:.06em;margin-bottom:5px}
+input,select,button{width:100%;padding:10px;border:1px solid #344963;border-radius:8px;background:#0d1727;color:var(--text);font:inherit}
+button{cursor:pointer;font-weight:bold;background:#1d3851}
+button:hover{border-color:var(--teal);background:#24485a}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.stat{padding:13px 15px}
+.num{font-size:24px;font-weight:bold}
+.hint,.desc,.note,.footer{font-size:12px;color:var(--muted)}
+.notice{padding:12px 14px;border-radius:9px;background:#172b3d;border:1px solid #29495b;color:#c3d9e7;font-size:12px}
+.loadrow{display:flex;gap:15px;align-items:center;flex-wrap:wrap}
+.loadrow input{max-width:420px}
+.layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(300px,.8fr);gap:15px}
+.network-wrap{height:510px;background:radial-gradient(ellipse at center,#13253a,#0c1524)}
+#network{width:100%;height:100%;display:block}
+.legend{display:flex;gap:13px;flex-wrap:wrap;padding:11px 15px;border-top:1px solid var(--line);font-size:12px;color:#c3d0e1}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+.detail{padding:16px}
+.detail h3{font-size:20px;margin:0 0 3px;overflow-wrap:anywhere}
+.pill{display:inline-block;padding:3px 8px;border-radius:20px;background:#20354b;color:#c6d9eb;font-size:11px;margin:4px 4px 3px 0}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #223249}
+.kv span{color:var(--muted)}.kv strong{text-align:right;overflow-wrap:anywhere}
+.section{margin-top:16px}
+.section h4{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 7px}
+.neighbor{width:auto;max-width:100%;margin:3px 4px 3px 0;padding:6px 8px;font-size:11px;text-align:left}
+.timeline-controls,.compare-controls{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:10px;padding:14px 16px 0}
+.chart-wrap{padding:5px 14px 8px}
+#genreTimeline{width:100%;height:330px;display:block}
+.chart-legend{display:flex;gap:14px;flex-wrap:wrap;padding:0 16px 14px;color:var(--muted);font-size:12px}
+.swatch{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}
+.chart-note{padding:0 16px 14px;color:var(--muted);font-size:12px}
+.node-label{font-size:10px;pointer-events:none;fill:#dce8f7}
+.link{stroke:#71849a;stroke-opacity:.5}
+.compare-controls{grid-template-columns:1fr 1fr}
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px}
+.compare-card{border:1px solid var(--line);border-radius:10px;padding:12px;background:#0e1929;min-width:0}
+.compare-card h3{margin:0 0 8px;font-size:16px;overflow-wrap:anywhere}
+.shared{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.empty{padding:25px;color:var(--muted)}
+@media(max-width:900px){
+ .controls{grid-template-columns:1fr 1fr}.layout{grid-template-columns:1fr}
+ .stats{grid-template-columns:1fr 1fr}.network-wrap{height:430px}
+ .timeline-controls{grid-template-columns:1fr 1fr}
+}
+@media(max-width:560px){
+ main{padding:10px}.controls,.timeline-controls,.compare-controls{grid-template-columns:1fr}
+ .compare-grid{grid-template-columns:1fr}.network-wrap{height:380px}
+ header{padding:17px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Oceanus Folk Explorer</h1>
+    <p>CGT 470 · Group 5 · Interactive music-relationship network</p>
+  </div>
+  <span class="tag">D3.JS · INTERACTIVE EXPLORER</span>
+</header>
+
+<main>
+  <section class="panel">
+    <div class="panel-body loadrow">
+      <div>
+        <label for="jsonFile">LOAD YOUR MC1 GRAPH JSON</label>
+        <input id="jsonFile" type="file" accept=".json,application/json">
+      </div>
+      <div id="loadStatus" class="hint">Upload MC1_graph.json to load your data.</div>
+    </div>
+  </section>
+
+  <section class="controls">
+    <div><label for="search">SEARCH ENTITY</label><input id="search" placeholder="Search a person, song, album, or genre"></div>
+    <div><label for="typeFilter">ENTITY TYPE</label><select id="typeFilter"><option value="All">All types</option></select></div>
+    <div><label for="relationFilter">RELATIONSHIP TYPE</label><select id="relationFilter"><option value="All">All relationships</option></select></div>
+    <div><label for="yearFilter">RELEASE YEAR</label><select id="yearFilter"><option value="All">All years</option></select></div>
+    <button id="reset">Reset filters</button>
+  </section>
+
+  <section class="stats">
+    <div class="stat"><div class="num" id="nodeCount">—</div><div class="desc">Entities displayed</div></div>
+    <div class="stat"><div class="num" id="linkCount">—</div><div class="desc">Relationships displayed</div></div>
+    <div class="stat"><div class="num" id="totalNodes">—</div><div class="desc">Entities in dataset</div></div>
+    <div class="stat"><div class="num" id="totalLinks">—</div><div class="desc">Relationships in dataset</div></div>
+  </section>
+
+  <div class="notice">
+    Search for an entity and click its node to inspect its connections. The network and the genre timeline are separate: changing the timeline filters will not change the graph. Entity-type filters prioritize matching entities while allowing connected entities of other types to remain visible.
+  </div>
+
+  <section class="layout">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Network graph</h2>
+        <span class="hint">Click nodes · drag to move · scroll to zoom</span>
+      </div>
+      <div class="network-wrap"><svg id="network" role="img" aria-label="Interactive relationship network"></svg></div>
+      <div class="legend">
+        <span><i class="dot" style="background:#55a6ff"></i>Person</span>
+        <span><i class="dot" style="background:#42cdbb"></i>Song</span>
+        <span><i class="dot" style="background:#f1c75b"></i>Album</span>
+        <span><i class="dot" style="background:#b18cff"></i>Musical group</span>
+        <span><i class="dot" style="background:#9aa9b2"></i>Record label</span>
+      </div>
+    </div>
+    <aside class="panel">
+      <div class="panel-head"><h2>Entity details</h2></div>
+      <div class="detail" id="details"><p class="hint">Load your JSON and click a node.</p></div>
+    </aside>
+  </section>
+
+  <!-- Independent chart section -->
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Genre timeline & comparison</h2>
+      <span class="hint">Independent of the network graph · 20-year periods</span>
+    </div>
+    <div class="timeline-controls">
+      <div><label for="chartGenre">GENRE TO HIGHLIGHT</label><select id="chartGenre"><option value="All">Compare all genres</option></select></div>
+      <div><label for="chartMetric">MEASURE</label>
+        <select id="chartMetric">
+          <option value="entities">Entities</option>
+          <option value="relationships">Relationships</option>
+        </select>
+      </div>
+      <div><label for="chartPeriod">TIME PERIOD</label><select id="chartPeriod"><option value="All">All periods</option></select></div>
+    </div>
+    <div class="chart-wrap"><svg id="genreTimeline" role="img" aria-label="Genre comparison bar chart"></svg></div>
+    <div class="chart-legend">
+      <span><i class="swatch" style="background:#42cdbb"></i>Other genres</span>
+      <span><i class="swatch" style="background:#f1c75b"></i>Selected genre</span>
+      <span>Hover over bars for counts · click a bar to filter the chart by period</span>
+    </div>
+    <div class="chart-note" id="chartStatus">Upload the JSON to calculate counts. Genre and year information must exist in the data to be counted.</div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Compare two entities</h2>
+      <span class="hint">Compare direct connections and shared neighbors</span>
+    </div>
+    <div class="compare-controls">
+      <div><label for="compareA">ENTITY A</label><select id="compareA"><option value="">Load data first</option></select></div>
+      <div><label for="compareB">ENTITY B</label><select id="compareB"><option value="">Load data first</option></select></div>
+    </div>
+    <div class="compare-grid" id="compareResults">
+      <div class="compare-card">Choose two entities after loading the graph.</div>
+    </div>
+  </section>
+
+  <p class="footer">The graph displays a limited selection for readability. Missing genres and release years are not guessed. Recorded relationships do not by themselves establish causation or influence.</p>
+</main>
+
+<script>
+const COLORS = {
+  Person:"#55a6ff", Song:"#42cdbb", Album:"#f1c75b",
+  MusicalGroup:"#b18cff", RecordLabel:"#9aa9b2"
+};
+
+let allNodes = [];
+let allLinks = [];
+let selectedId = null;
+let simulation = null;
+let loaded = false;
+let pairFocus = null;
+
+const svg = d3.select("#network");
+const chartSvg = d3.select("#genreTimeline");
+const $ = id => document.getElementById(id);
+
+function nodeType(n) {
+  return String(n["Node Type"] ?? n.type ?? n.nodeType ?? "Unknown");
+}
+function nodeName(n) {
+  return String(n.name ?? n.label ?? n.title ?? n.id);
+}
+function edgeType(e) {
+  return String(e["Edge Type"] ?? e.type ?? e.relationship ?? "Unknown");
+}
+function genreOf(n) {
+  const value = n.genre ?? n.Genre ?? n.genres ?? "";
+  return Array.isArray(value) ? value.join(", ") : String(value).trim();
+}
+function yearOf(n) {
+  const raw = n.release_date ?? n.releaseDate ?? n["Release Date"] ??
+    n.release_year ?? n.releaseYear ?? n["Release Year"] ??
+    n.year ?? n.Year ?? n.date ?? "";
+  const match = String(raw).match(/(?:18|19|20|21)\d{2}/);
+  return match ? Number(match[0]) : null;
+}
+function sourceId(e) {
+  return String(typeof e.source === "object" ? e.source.id : e.source);
+}
+function targetId(e) {
+  return String(typeof e.target === "object" ? e.target.id : e.target);
+}
+function esc(v) {
+  return String(v ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+  }[c]));
+}
+function periodStart(y) {
+  return Math.floor(y / 20) * 20;
+}
+function periodLabel(y) {
+  return `${y}–${y + 19}`;
+}
+function setStatus(text) {
+  $("loadStatus").textContent = text;
+}
+function fillSelect(id, values, firstLabel) {
+  const el = $(id);
+  el.innerHTML = `<option value="All">${esc(firstLabel)}</option>` +
+    values.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
+}
+function allPeriods() {
+  return [...new Set(allNodes.filter(n => n._year !== null)
+    .map(n => periodStart(n._year)))].sort((a,b) => a-b);
+}
+
+$("jsonFile").addEventListener("change", async event => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  try {
+    const data = JSON.parse(await file.text());
+    if (!Array.isArray(data.nodes) || !Array.isArray(data.links)) {
+      throw new Error("The JSON needs nodes and links arrays.");
+    }
+
+    allNodes = data.nodes
+      .filter(n => n.id !== undefined && n.id !== null)
+      .map(n => ({
+        ...n,
+        id: String(n.id),
+        name: nodeName(n),
+        _type: nodeType(n),
+        _genre: genreOf(n),
+        _year: yearOf(n)
+      }));
+
+    const ids = new Set(allNodes.map(n => n.id));
+    allLinks = data.links
+      .filter(e => ids.has(String(typeof e.source === "object" ? e.source.id : e.source)) &&
+                   ids.has(String(typeof e.target === "object" ? e.target.id : e.target)))
+      .map((e, i) => ({
+        ...e,
+        _source: String(typeof e.source === "object" ? e.source.id : e.source),
+        _target: String(typeof e.target === "object" ? e.target.id : e.target),
+        _id: i
+      }));
+
+    fillSelect("typeFilter", [...new Set(allNodes.map(n => n._type))].sort(), "All types");
+    fillSelect("relationFilter", [...new Set(allLinks.map(edgeType))].sort(), "All relationships");
+    fillSelect("yearFilter", [...new Set(allNodes.map(n => n._year).filter(y => y !== null))]
+      .sort((a,b) => a-b), "All years");
+
+    const genres = [...new Set(allNodes.flatMap(n =>
+      n._genre.split(/[,;|]/).map(g => g.trim()).filter(Boolean)
+    ))].sort((a,b) => a.localeCompare(b));
+    fillSelect("chartGenre", genres, "Compare all genres");
+    fillSelect("chartPeriod", allPeriods().map(periodLabel), "All periods");
+
+    const options = allNodes.slice().sort((a,b) => a.name.localeCompare(b.name))
+      .map(n => `<option value="${esc(n.id)}">${esc(n.name)} · ${esc(n._type)}</option>`)
+      .join("");
+    $("compareA").innerHTML = options;
+    $("compareB").innerHTML = options;
+
+    selectedId = allNodes.find(n => n.name.toLowerCase() === "sailor shift")?.id
+      ?? allNodes[0]?.id ?? null;
+    const initial = allNodes.find(n => n.id === selectedId);
+    if (initial?._type === "Person" &&
+        allLinks.some(e => (e._source === selectedId || e._target === selectedId) &&
+          edgeType(e) === "PerformerOf")) {
+      $("relationFilter").value = "PerformerOf";
+    }
+
+    loaded = true;
+    $("totalNodes").textContent = allNodes.length.toLocaleString();
+    $("totalLinks").textContent = allLinks.length.toLocaleString();
+    setStatus(`Loaded ${file.name}: ${allNodes.length.toLocaleString()} entities and ${allLinks.length.toLocaleString()} relationships.`);
+    render();
+    drawGenreTimeline();
+    updateComparison();
+  } catch (err) {
+    setStatus("Could not load the file: " + err.message);
+  }
+});
+
+function currentFilters() {
+  return {
+    q:$("search").value.trim().toLowerCase(),
+    type:$("typeFilter").value,
+    rel:$("relationFilter").value,
+    year:$("yearFilter").value
+  };
+}
+
+/*
+ Filters select matching entities as focus entities.
+ Their connected entities of other types remain visible, so
+ filtering to people does not hide the songs they connect to.
+*/
+function getView() {
+  const f = currentFilters();
+  const edgePool = allLinks.filter(e => f.rel === "All" || edgeType(e) === f.rel);
+  const seedNodes = allNodes.filter(n =>
+    (f.type === "All" || n._type === f.type) &&
+    (!f.q || n.name.toLowerCase().includes(f.q) || n._genre.toLowerCase().includes(f.q)) &&
+    (f.year === "All" || String(n._year) === f.year)
+  );
+
+  if (pairFocus) {
+    const pair = new Set(pairFocus);
+    return {
+      ns:allNodes.filter(n => pair.has(n.id)),
+      es:edgePool.filter(e => pair.has(e._source) && pair.has(e._target))
+    };
+  }
+
+  const seedIds = new Set(seedNodes.map(n => n.id));
+  const keep = new Set(seedIds);
+  edgePool.forEach(e => {
+    if (seedIds.has(e._source)) keep.add(e._target);
+    if (seedIds.has(e._target)) keep.add(e._source);
+  });
+
+  let ns = allNodes.filter(n => keep.has(n.id));
+  if (ns.length > 350) {
+    const seedList = seedNodes.slice(0, 250);
+    const seedKeep = new Set(seedList.map(n => n.id));
+    edgePool.forEach(e => {
+      if (seedKeep.has(e._source)) seedKeep.add(e._target);
+      if (seedKeep.has(e._target)) seedKeep.add(e._source);
+    });
+    ns = allNodes.filter(n => seedKeep.has(n.id)).slice(0,350);
+  }
+  if (!ns.some(n => n.id === selectedId)) selectedId = ns[0]?.id ?? null;
+  const visible = new Set(ns.map(n => n.id));
+  const es = edgePool.filter(e => visible.has(e._source) && visible.has(e._target));
+  return {ns, es};
+}
+
+function render() {
+  if (!loaded) return;
+  const {ns, es} = getView();
+  const width = document.querySelector(".network-wrap").clientWidth || 700;
+  const height = 510;
+
+  $("nodeCount").textContent = ns.length.toLocaleString();
+  $("linkCount").textContent = es.length.toLocaleString();
+
+  svg.attr("viewBox", `0 0 ${width} ${height}`).selectAll("*").remove();
+  if (simulation) simulation.stop();
+
+  if (!ns.length) {
+    svg.append("text").attr("x",20).attr("y",35).attr("fill","#9aabc2")
+      .text("No matching entities. Try clearing a filter.");
+    updateDetails();
+    return;
+  }
+
+  const g = svg.append("g");
+  svg.call(d3.zoom().scaleExtent([.25,5]).on("zoom", e => g.attr("transform",e.transform)));
+
+  const simLinks = es.map(e => ({
+    _source:e._source, _target:e._target,
+    source:e._source, target:e._target, type:edgeType(e)
+  }));
+
+  const link = g.append("g").selectAll("line").data(simLinks).join("line")
+    .attr("class","link").attr("stroke-width",1.3);
+
+  const node = g.append("g").selectAll("g").data(ns,d=>d.id).join("g")
+    .style("cursor","pointer")
+    .on("click",(event,d) => {
+      const previous = selectedId;
+      const connected = previous && previous !== d.id &&
+        allLinks.some(e =>
+          (e._source === previous && e._target === d.id) ||
+          (e._source === d.id && e._target === previous)
+        );
+
+      if (connected) {
+        pairFocus = [previous,d.id];
+        $("search").value = "";
+        $("typeFilter").value = "All";
+        $("relationFilter").value = "All";
+        $("yearFilter").value = "All";
+      } else {
+        pairFocus = null;
+      }
+      selectedId = d.id;
+      render();
+    });
+
+  node.append("circle")
+    .attr("r",d=>d.id===selectedId?9:6)
+    .attr("fill",d=>COLORS[d._type]||COLORS.RecordLabel)
+    .attr("stroke",d=>d.id===selectedId?"#ffffff":"#101b2b")
+    .attr("stroke-width",d=>d.id===selectedId?2.5:1.4);
+
+  node.append("text").attr("class","node-label").attr("dx",9).attr("dy",3)
+    .text(d=>d.name.length>25?d.name.slice(0,23)+"…":d.name);
+  node.append("title").text(d=>`${d.name}\n${d._type}\n${d._genre||"Genre not recorded"}`);
+
+  simulation = d3.forceSimulation(ns)
+    .force("link",d3.forceLink(simLinks).id(d=>d.id).distance(65))
+    .force("charge",d3.forceManyBody().strength(-145))
+    .force("center",d3.forceCenter(width/2,height/2))
+    .force("collide",d3.forceCollide(16))
+    .on("tick",()=>{
+      link.attr("x1",d=>d.source.x).attr("y1",d=>d.source.y)
+        .attr("x2",d=>d.target.x).attr("y2",d=>d.target.y);
+      node.attr("transform",d=>`translate(${d.x},${d.y})`);
+    });
+
+  node.call(d3.drag()
+    .on("start",(event,d)=>{
+      if(!event.active)simulation.alphaTarget(.25).restart();
+      d.fx=d.x;d.fy=d.y;
+    })
+    .on("drag",(event,d)=>{d.fx=event.x;d.fy=event.y;})
+    .on("end",(event,d)=>{
+      if(!event.active)simulation.alphaTarget(0);
+      d.fx=null;d.fy=null;
+    })
+  );
+
+  updateDetails();
+  highlightSelected();
+}
+
+function updateDetails() {
+  const n = allNodes.find(x=>x.id===selectedId);
+  const box = $("details");
+  if (!n) {
+    box.innerHTML='<p class="hint">No entity selected. Try clearing filters.</p>';
+    return;
+  }
+
+  const incident = allLinks.filter(e=>e._source===n.id||e._target===n.id);
+  const outgoing = incident.filter(e=>e._source===n.id).length;
+  const incoming = incident.length-outgoing;
+  const neighbors = new Map();
+
+  incident.forEach(e=>{
+    const id=e._source===n.id?e._target:e._source;
+    const other=allNodes.find(x=>x.id===id);
+    if(other) neighbors.set(id,{id,name:other.name,type:other._type,rel:edgeType(e)});
+  });
+
+  box.innerHTML=`
+    <h3>${esc(n.name)}</h3>
+    <div class="hint">ID: ${esc(n.id)}</div>
+    <span class="pill">${esc(n._type)}</span>
+    ${n._genre?`<span class="pill">${esc(n._genre)}</span>`:""}
+    <div class="section"><h4>Relationship summary</h4>
+      <div class="kv"><span>Direct relationships</span><strong>${incident.length}</strong></div>
+      <div class="kv"><span>Outgoing</span><strong>${outgoing}</strong></div>
+      <div class="kv"><span>Incoming</span><strong>${incoming}</strong></div>
+      <div class="kv"><span>Release date/year</span><strong>${esc(n.release_date??n.releaseDate??n.year??n.Year??"Not recorded")}</strong></div>
+    </div>
+    <div class="section"><h4>Connected entities (${neighbors.size})</h4><div id="neighbors"></div></div>
+    <div class="section"><button id="compareSelected">Compare this entity</button></div>
+    <p class="note">Recorded connections do not automatically prove influence or causation.</p>`;
+
+  const list=$("neighbors");
+  [...neighbors.values()].sort((a,b)=>a.name.localeCompare(b.name)).slice(0,60).forEach(x=>{
+    const button=document.createElement("button");
+    button.className="neighbor";
+    button.textContent=`${x.name} · ${x.rel}`;
+    button.onclick=()=>{
+      pairFocus=null;
+      $("search").value="";
+      $("typeFilter").value="All";
+      $("relationFilter").value="All";
+      $("yearFilter").value="All";
+      selectedId=x.id;
+      render();
+    };
+    list.appendChild(button);
+  });
+
+  $("compareSelected").onclick=()=>{
+    $("compareA").value=n.id;
+    updateComparison();
+    $("compareResults").scrollIntoView({behavior:"smooth",block:"nearest"});
+  };
+}
+
+function highlightSelected() {
+  if(!selectedId)return;
+  const adjacent=new Set([selectedId]);
+  allLinks.forEach(e=>{
+    if(e._source===selectedId)adjacent.add(e._target);
+    if(e._target===selectedId)adjacent.add(e._source);
+  });
+  svg.selectAll("circle").attr("opacity",d=>adjacent.has(d.id)?1:.25);
+  svg.selectAll(".node-label").attr("opacity",d=>adjacent.has(d.id)?1:.3);
+  svg.selectAll("line.link")
+    .attr("stroke",d=>(sourceId(d)===selectedId||targetId(d)===selectedId)?"#f1c75b":"#71849a")
+    .attr("stroke-opacity",d=>(sourceId(d)===selectedId||targetId(d)===selectedId)?0.95:0.28);
+}
+
+/* Separate genre bar chart. It never changes the network filters. */
+function drawGenreTimeline() {
+  if(!loaded)return;
+
+  const selectedGenre=$("chartGenre").value;
+  const metric=$("chartMetric").value;
+  const periodChoice=$("chartPeriod").value;
+  const periods=allPeriods();
+  const selectedPeriod=periodChoice==="All"?null:Number(periodChoice.split("–")[0]);
+
+  const splitGenres=n=>n._genre.split(/[,;|]/).map(g=>g.trim()).filter(Boolean);
+  const genreNames=[...new Set(allNodes.flatMap(splitGenres))].sort((a,b)=>a.localeCompare(b));
+  const countMap=new Map();
+
+  if(metric==="entities"){
+    allNodes.forEach(n=>{
+      if(n._year===null)return;
+      const p=periodStart(n._year);
+      if(selectedPeriod!==null&&p!==selectedPeriod)return;
+      splitGenres(n).forEach(genre=>{
+        if(selectedGenre!=="All"&&genre!==selectedGenre)return;
+        const key=`${genre}|${p}`;
+        countMap.set(key,(countMap.get(key)||0)+1);
+      });
+    });
+  } else {
+    allLinks.forEach(e=>{
+      const a=allNodes.find(n=>n.id===e._source);
+      const b=allNodes.find(n=>n.id===e._target);
+      if(!a||!b)return;
+      const y=a._year??b._year;
+      if(y===null)return;
+      const p=periodStart(y);
+      if(selectedPeriod!==null&&p!==selectedPeriod)return;
+
+      const genres=[...new Set([...splitGenres(a),...splitGenres(b)])];
+      genres.forEach(genre=>{
+        if(selectedGenre!=="All"&&genre!==selectedGenre)return;
+        const key=`${genre}|${p}`;
+        countMap.set(key,(countMap.get(key)||0)+1);
+      });
+    });
+  }
+
+  const shownPeriods=selectedPeriod===null?periods:[selectedPeriod];
+  const shownGenres=selectedGenre==="All"?genreNames:[selectedGenre];
+  const data=[];
+  shownPeriods.forEach(p=>shownGenres.forEach(genre=>{
+    data.push({period:p,genre,count:countMap.get(`${genre}|${p}`)||0});
+  }));
+
+  const chart=$("genreTimeline");
+  const width=document.querySelector(".chart-wrap").clientWidth||900;
+  const height=330;
+  const margin={top:25,right:20,bottom:55,left:52};
+  chartSvg.attr("viewBox",`0 0 ${width} ${height}`).selectAll("*").remove();
+
+  if(!data.length||!shownPeriods.length){
+    chartSvg.append("text").attr("x",20).attr("y",40).attr("fill","#9aabc2")
+      .text("No genre or release-year data is available for this selection.");
+    $("chartStatus").textContent="No countable genre records were found. Check the JSON fields for genre and release year.";
+    return;
+  }
+
+  const x0=d3.scaleBand().domain(shownPeriods).range([margin.left,width-margin.right]).paddingInner(.18);
+  const x1=d3.scaleBand().domain(shownGenres).range([0,x0.bandwidth()]).padding(.08);
+  const max=d3.max(data,d=>d.count)||1;
+  const y=d3.scaleLinear().domain([0,max*1.12]).nice().range([height-margin.bottom,margin.top]);
+
+  chartSvg.append("g")
+    .attr("transform",`translate(0,${height-margin.bottom})`)
+    .call(d3.axisBottom(x0).tickFormat(p=>`${p}–${p+19}`))
+    .call(g=>g.selectAll("text").attr("fill","#a9bad0").attr("font-size",11))
+    .call(g=>g.selectAll("path,line").attr("stroke","#34465d"));
+
+  chartSvg.append("g")
+    .attr("transform",`translate(${margin.left},0)`)
+    .call(d3.axisLeft(y).ticks(5).tickFormat(d3.format("~s")))
+    .call(g=>g.selectAll("text").attr("fill","#a9bad0"))
+    .call(g=>g.selectAll("path,line").attr("stroke","#34465d"));
+
+  const groups=chartSvg.selectAll(".periodGroup")
+    .data(shownPeriods).join("g").attr("class","periodGroup")
+    .attr("transform",p=>`translate(${x0(p)},0)`);
+
+  groups.each(function(p){
+    const rows=shownGenres.map(genre=>({
+      genre,period:p,count:countMap.get(`${genre}|${p}`)||0
+    }));
+    d3.select(this).selectAll("rect").data(rows).join("rect")
+      .attr("x",d=>x1(d.genre))
+      .attr("y",d=>y(d.count))
+      .attr("width",Math.max(1,x1.bandwidth()))
+      .attr("height",d=>y(0)-y(d.count))
+      .attr("rx",3)
+      .attr("fill",d=>selectedGenre!=="All"&&d.genre===selectedGenre?"#f1c75b":"#42cdbb")
+      .attr("opacity",.92)
+      .append("title")
+      .text(d=>`${d.genre} · ${periodLabel(d.period)}: ${d.count.toLocaleString()} ${metric}`);
+  });
+
+  chartSvg.append("text").attr("x",margin.left).attr("y",15)
+    .attr("fill","#9aabc2").attr("font-size",11)
+    .text(metric==="entities"?"Entities with a known genre and release year":"Relationships attributed to endpoint genres and release years");
+
+  $("chartStatus").textContent=
+    `${selectedGenre==="All"?"Comparing all genres":`Showing ${selectedGenre}`} · `+
+    `${selectedPeriod===null?"All available 20-year periods":periodLabel(selectedPeriod)} · `+
+    `${metric==="entities"?"Entity counts":"Relationship counts"}. Records without usable genre or year data are excluded.`;
+}
+
+function updateComparison() {
+  if(!loaded)return;
+  const a=allNodes.find(n=>n.id===$("compareA").value);
+  const b=allNodes.find(n=>n.id===$("compareB").value);
+
+  function getStats(n){
+    if(!n)return null;
+    const edges=allLinks.filter(e=>e._source===n.id||e._target===n.id);
+    const neighbors=new Set(edges.map(e=>e._source===n.id?e._target:e._source));
+    return {n,edges,neighbors,
+      outgoing:edges.filter(e=>e._source===n.id).length,
+      incoming:edges.filter(e=>e._target===n.id).length};
+  }
+
+  const A=getStats(a),B=getStats(b);
+  const shared=A&&B?[...A.neighbors].filter(id=>B.neighbors.has(id))
+    .map(id=>allNodes.find(n=>n.id===id)?.name).filter(Boolean):[];
+
+  function card(s,label){
+    if(!s)return `<div class="compare-card">${label}: choose an entity.</div>`;
+    return `<div class="compare-card">
+      <span class="hint">${label}</span><h3>${esc(s.n.name)}</h3>
+      <span class="pill">${esc(s.n._type)}</span>
+      ${s.n._genre?`<span class="pill">${esc(s.n._genre)}</span>`:""}
+      <div class="kv"><span>Direct relationships</span><strong>${s.edges.length}</strong></div>
+      <div class="kv"><span>Outgoing</span><strong>${s.outgoing}</strong></div>
+      <div class="kv"><span>Incoming</span><strong>${s.incoming}</strong></div>
+      <div class="kv"><span>Unique neighbors</span><strong>${s.neighbors.size}</strong></div>
+    </div>`;
+  }
+
+  $("compareResults").innerHTML=card(A,"ENTITY A")+card(B,"ENTITY B")+
+    (A&&B?`<div class="compare-card" style="grid-column:1/-1">
+      <h3>Shared neighbors (${shared.length})</h3>
+      <div class="shared">${shared.slice(0,100).map(esc).join(" · ")||"No shared neighbors found."}</div>
+    </div>`:"");
+}
+
+["search","typeFilter","relationFilter","yearFilter"].forEach(id=>{
+  $(id).addEventListener(id==="search"?"input":"change",()=>{
+    pairFocus=null;
+    if(loaded)render();
+  });
+});
+["chartGenre","chartMetric","chartPeriod"].forEach(id=>{
+  $(id).addEventListener("change",drawGenreTimeline);
+});
+["compareA","compareB"].forEach(id=>{
+  $(id).addEventListener("change",updateComparison);
+});
+
+$("reset").addEventListener("click",()=>{
+  $("search").value="";
+  $("typeFilter").value="All";
+  $("relationFilter").value="All";
+  $("yearFilter").value="All";
+  pairFocus=null;
+  selectedId=allNodes.find(n=>n.name.toLowerCase()==="sailor shift")?.id
+    ??allNodes[0]?.id??null;
+  if(loaded)render();
+});
+window.addEventListener("resize",()=>{
+  if(loaded){render();drawGenreTimeline();}
+});
+</script>
+</body>
+</html>
